@@ -282,20 +282,12 @@ public class SpellCircleRenderer {
                         || (line.p1() == 6 && (line.p2() == 3 || line.p2() == 7))
                         || (line.p1() == 7 && (line.p2() == 6 || line.p2() == 8))
                         || (line.p1() == 8 && (line.p2() == 7 || line.p2() == 5))) {
-                    double[] angles = {
-                            3.f / 4.f * Math.PI,
-                            1.f / 2.f * Math.PI,
-                            1.f / 4.f * Math.PI,
-                            Math.PI,
-                            0.f,
-                            0.f,
-                            5.f / 4.f * Math.PI,
-                            3.f / 2.f * Math.PI,
-                            7.f / 4.f * Math.PI
-                    };
-                    System.out.println(line.p1() + ": " + angles[line.p1()] + ", " + line.p2() + ": " + angles[line.p1()] + Math.PI / 4.f);
+                    int[] angles = { 3, 2, 1, 4, -1, 0, 5, 6, 7 };
+                    if (line.p2() == 8 && line.p1() == 5) {
+                        angles[5] = 8;
+                    }
                     drawGlyphLineArc(matrices, vertexConsumers,
-                            x, y, patternRadius, angles[line.p1()], angles[line.p1()] + Math.PI / 4.f,
+                            x, y, patternRadius, (double) angles[line.p1()] * Math.PI / 4, (double) angles[line.p2()] * Math.PI / 4,
                             pixelSize, isDrawing, 1, r, g, b, 0.7f * alpha, animated && inUI);
                 } else {
                     var first = getPatternDotPosition(x, y, line.p1(), patternRadius);
@@ -408,7 +400,7 @@ public class SpellCircleRenderer {
             float b, float opacity, boolean animated) {
         drawFlatArc(matrices, vertexConsumers,
                 (float) x, (float) y, (float) patternRadius, (float) last, (float) now, (float) pixelSize,
-                0, (isDrawing ? 0.5f : tone) * r, (isDrawing ? 0.5f : tone) * g, tone * b, opacity, 10);
+                0, (isDrawing ? 0.5f : tone) * r, (isDrawing ? 0.5f : tone) * g, tone * b, opacity, 6, animated);
     }
 
     public static Vector2f getPatternDotPosition(float x, float y, int i, float radius) {
@@ -489,40 +481,35 @@ public class SpellCircleRenderer {
 
     public static void drawFlatArc(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
             float x, float y, float radius, float startAngle, float endAngle, float strokeWidth,
-            float z, float r, float g, float b, float alpha, int resolution) {
+            float z, float r, float g, float b, float alpha, int resolution, boolean animated) {
         Matrix4f matrix4f = matrices.peek().getPositionMatrix();
         VertexConsumer vertexConsumer = vertexConsumers.getBuffer(GLYPH_LAYER);
-        System.out.println(startAngle / Math.PI * 180 + " " + endAngle / Math.PI * 180);
-        System.out.println("Start");
-        for (int i = 0; i < resolution; i++) {
+        float lastRand = 1 + (glyphRandom.nextFloat() - 0.5f);
+        for (int i = 1; i < resolution - 1; i++) {
             float angle1 = startAngle + (endAngle - startAngle) * i / resolution;
             float angle2 = startAngle + (endAngle - startAngle) * (i + 1) / resolution;
             float a1Cos = (float) Math.cos(angle1);
             float a2Cos = (float) Math.cos(angle2);
             float a1Sin = (float) Math.sin(angle1);
             float a2Sin = (float) Math.sin(angle2);
-            float largeRad = radius + strokeWidth / 2;
-            float smallRad = radius - strokeWidth / 2;
+            float largeRad1 = radius + ((animated ? (lastRand) : 1) * strokeWidth / 2);
+            float smallRad1 = radius - ((animated ? (lastRand) : 1) * strokeWidth / 2);
+            float largeRad2 = radius + ((animated ? (lastRand = (1 + (glyphRandom.nextFloat() - 0.5f))) : 1) * strokeWidth / 2);
+            float smallRad2 = radius - ((animated ? (lastRand) : 1) * strokeWidth / 2);
 
-            float x1 = (float) (x + a1Cos * (smallRad));
-            float y1 = (float) (y - a1Sin * (smallRad));
-            float x2 = (float) (x + a1Cos * (largeRad));
-            float y2 = (float) (y - a1Sin * (largeRad));
-            float x3 = (float) (x + a2Cos * (smallRad));
-            float y3 = (float) (y - a2Sin * (smallRad));
-            float x4 = (float) (x + a2Cos * (largeRad));
-            float y4 = (float) (y - a2Sin * (largeRad));
-
-            System.out.println("(" + x1 + "," + y1 + ")");
-            System.out.println("(" + x2 + "," + y2 + ")");
-            System.out.println("(" + x3 + "," + y3 + ")");
-            System.out.println("(" + x4 + "," + y4 + ")");
+            float x1 = (float) (x + a1Cos * (smallRad1));
+            float y1 = (float) (y - a1Sin * (smallRad1));
+            float x2 = (float) (x + a1Cos * (largeRad1));
+            float y2 = (float) (y - a1Sin * (largeRad1));
+            float x3 = (float) (x + a2Cos * (smallRad2));
+            float y3 = (float) (y - a2Sin * (smallRad2));
+            float x4 = (float) (x + a2Cos * (largeRad2));
+            float y4 = (float) (y - a2Sin * (largeRad2));
 
             vertexConsumer.vertex(matrix4f, x3, y3, z).color(r, g, b, alpha);
             vertexConsumer.vertex(matrix4f, x1, y1, z).color(r, g, b, alpha);
             vertexConsumer.vertex(matrix4f, x2, y2, z).color(r, g, b, alpha);
             vertexConsumer.vertex(matrix4f, x4, y4, z).color(r, g, b, alpha);
         }
-        System.out.println("End");
     }
 }
